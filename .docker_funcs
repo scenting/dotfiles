@@ -1,0 +1,92 @@
+
+###
+# Docker helpers
+###
+
+dcleanup(){
+	docker rm -v $(docker ps --filter status=exited -q 2>/dev/null) 2>/dev/null
+	docker rmi $(docker images --filter dangling=true -q 2>/dev/null) 2>/dev/null
+}
+
+del_stopped(){
+	local name=$1
+	local state=$(docker inspect --format "{{.State.Running}}" $name 2>/dev/null)
+
+	if [[ "$state" == "false" ]]; then
+		docker rm $name
+	fi
+}
+
+relies_on(){
+	local containers=$@
+
+	for container in $containers; do
+		local state=$(docker inspect --format "{{.State.Running}}" $container 2>/dev/null)
+
+		if [[ "$state" == "false" ]] || [[ "$state" == "" ]]; then
+			echo "$container is not running, starting it for you."
+			$container
+		fi
+	done
+}
+
+###
+# Docker containers
+###
+
+chrome() {
+    del_stopped chrome
+
+    docker run -d \
+        --memory 1gb \
+        --net host \
+        -v /etc/localtime:/etc/localtime:ro \
+        -v /tmp/.X11-unix:/tmp/.X11-unix \
+        -e DISPLAY=unix$DISPLAY \
+        -v $HOME/Downloads:/root/Downloads \
+        -v $HOME/.chrome:/data \
+        -v /dev/shm:/dev/shm \
+        -v /etc/hosts:/etc/hosts \
+        --device /dev/snd \
+        --device /dev/dri \
+        --device /dev/video0 \
+        --group-add audio \
+        --group-add video \
+        --name chrome \
+        jess/chrome --user-data-dir=/data --force-device-scale-factor=1 \
+        "$args"
+}
+
+pulseaudio(){
+	del_stopped pulseaudio
+
+	docker run -d \
+		-v /etc/localtime:/etc/localtime:ro \
+		--device /dev/snd \
+		-p 4713:4713 \
+		--restart always \
+		--group-add audio \
+		--name pulseaudio \
+		jess/pulseaudio
+}
+
+vlc(){
+	del_stopped vlc
+	relies_on pulseaudio
+
+	docker run -d \
+		-v /etc/localtime:/etc/localtime:ro \
+		-v /tmp/.X11-unix:/tmp/.X11-unix \
+		-e DISPLAY=unix$DISPLAY \
+		-e GDK_SCALE \
+		-e GDK_DPI_SCALE \
+		-e QT_DEVICE_PIXEL_RATIO \
+		--link pulseaudio:pulseaudio \
+		-e PULSE_SERVER=pulseaudio \
+		--group-add audio \
+		--group-add video \
+		-v $HOME/Downloads:/home/vlc/Downloads \
+		--device /dev/dri \
+		--name vlc \
+		jess/vlc
+}

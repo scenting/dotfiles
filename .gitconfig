@@ -1,0 +1,9 @@
+[Core]
+    editor = vim
+
+[User]
+    name = Miguel Gonzalez
+    email = scenting@gmail.com
+
+[github]
+    user = scenting

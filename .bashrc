@@ -43,7 +43,7 @@ esac
 # uncomment for a colored prompt, if the terminal has the capability; turned
 # off by default to not distract the user: the focus in a terminal window
 # should be on the output of commands, not on the prompt
-#force_color_prompt=yes
+force_color_prompt=yes
 
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
@@ -113,9 +113,39 @@ if ! shopt -oq posix; then
 fi
 
 # Add sbin to PATH
-export PATH=~/dotfiles/bin:/usr/local/sbin:/usr/sbin:/sbin:$PATH
+export PATH=~/dotfiles/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/sbin:$PATH
 
-# Custom prompt
-if [ -f ~/.bash_prompt ]; then
+POWERLINE_SCRIPT=/usr/local/lib/python2.7/site-packages/powerline/bindings/bash/powerline.sh
+if [ -f $POWERLINE_SCRIPT ]; then
+    powerline-daemon -q
+    POWERLINE_BASH_CONTINUATION=1
+    POWERLINE_BASH_SELECT=1
+    . $POWERLINE_SCRIPT
+elif [ -f ~/.bash_prompt ]; then
     . ~/.bash_prompt
 fi
+
+export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python2
+export WORKON_HOME=$HOME/.virtualenvs
+source /usr/local/bin/virtualenvwrapper.sh
+
+if [ -f ~/.git-completion.bash ]; then
+    source ~/.git-completion.bash
+fi
+
+# Postgres configuration
+export PGDATA=/usr/local/var/postgres
+
+if [ -f /usr/local/etc/bash_completion.d/pass ]; then
+    source /usr/local/etc/bash_completion.d/pass
+fi
+
+if [ -f ~/.boto ]; then
+    export EC2_INI_PATH='~/.boto'
+fi
+
+export AWS_DEFAULT_PROFILE=sandbox
+
+export ANSIBLE_VAULT_PASSWORD_FILE=~/.vault_pass
+
+export XDEBUG_HOST=10.0.0.9
